@@ -3,6 +3,7 @@ module github.com/wgsaxton/go-grpc-class/module2
 go 1.23.6
 
 require (
+	golang.org/x/sync v0.10.0
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
 )

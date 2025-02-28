@@ -1,6 +1,7 @@
 package streaming
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"time"
@@ -70,6 +71,33 @@ func (s Service) LogStream(stream grpc.ClientStreamingServer[proto.LogStreamRequ
 		log.Printf("Received log [%s]: %s - %s", logEntry.GetTimestamp().AsTime(), logEntry.GetLevel().String(), logEntry.GetMessage())
 		// increment count
 		count++
+	}
+
+}
+
+func (s Service) Echo(stream grpc.BidiStreamingServer[proto.EchoRequest, proto.EchoResponse]) error {
+	// loop through the messages received by the client
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			// check if the client closes the stream
+			if err == io.EOF {
+				// close the server side stream
+				log.Println("Client closed the Echo stream connection")
+				return nil
+			}
+			return err
+		}
+
+		log.Printf("message received: %s", req.GetMessage())
+
+		// build our response and send back from the server
+		resp := &proto.EchoResponse{
+			Message: fmt.Sprintf("Sending this message back: %s", req.GetMessage()),
+		}
+		if err := stream.SendMsg(resp); err != nil {
+			return err
+		}
 	}
 
 }

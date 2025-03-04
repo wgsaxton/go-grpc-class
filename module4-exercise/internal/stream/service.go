@@ -7,74 +7,68 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	"github.com/wgsaxton/go-grpc-class/module3-exercise/proto"
+	"github.com/wgsaxton/go-grpc-class/module4-exercise/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type Service struct {
-	// below cannot be a pointer or it errors out
 	proto.UnimplementedFileUploadServiceServer
 }
 
 func (s Service) DownloadFile(req *proto.DownloadFileRequest, stream grpc.ServerStreamingServer[proto.DownloadFileResponse]) error {
-	// check if the name is empty in the request
 	if req.GetName() == "" {
-		return status.Error(codes.InvalidArgument, "file name cannot be empty")
+		return status.Error(codes.InvalidArgument, "filename cannot be empty")
 	}
 
-	// open file
+	// open file on the server
 	file, err := os.Open(req.GetName())
 	if err != nil {
-		// check if the file is found. if not, return not found
 		if os.IsNotExist(err) {
 			return status.Error(codes.NotFound, "file not found")
 		}
 		return err
 	}
-	// read the file in chunks of 5kb
-	const bufferSize = 5 * 1024
+	defer file.Close()
+
+	const bufferSize = 5 * 1024 // send in 5KB chuncks
 	buff := make([]byte, bufferSize)
 	for {
-		bytes, err := file.Read(buff)
+		// read bytes
+		bytesRead, err := file.Read(buff)
 		if err != nil {
 			if err == io.EOF {
-				// done reading file. close the server stream
-				return nil
+				return nil // end of file, close the stream
 			}
 			return status.Error(codes.Internal, "error reading file")
 		}
 
-		// stream the chunk to the client
-		err = stream.Send(&proto.DownloadFileResponse{Content: buff[:bytes]})
-		if err != nil {
-			return err
+		// stream bytes to client
+		if err = stream.Send(&proto.DownloadFileResponse{Content: buff[:bytesRead]}); err != nil {
+			return status.Error(codes.Internal, "error streaming file")
 		}
 	}
-
 }
 
 func (s Service) UploadFile(stream grpc.ClientStreamingServer[proto.UploadFileRequest, proto.UploadFileResponse]) error {
-	// generate the filename
+	// generate a file name
 	fileName := fmt.Sprintf("%s.png", uuid.New().String())
 
-	// create a file
+	// create file
 	file, err := os.Create(fileName)
 	if err != nil {
 		return status.Error(codes.Internal, "error creating file")
 	}
 	defer file.Close()
 
-	// receive chunks from client
 	for {
+		// receive chunk
 		res, err := stream.Recv()
 		if err != nil {
-			// client has closed the stream, end of file
 			if err == io.EOF {
-				return stream.SendAndClose(&proto.UploadFileResponse{
-					Name: fileName,
-				})
+				// close stream and send response to client
+				return stream.SendAndClose(&proto.UploadFileResponse{Name: fileName})
 			}
 			return err
 		}
@@ -82,10 +76,9 @@ func (s Service) UploadFile(stream grpc.ClientStreamingServer[proto.UploadFileRe
 		// write chunk to file
 		bw, err := file.Write(res.GetContent())
 		if err != nil {
-			return status.Error(codes.Internal, "error writing to file")
+			return status.Errorf(codes.Internal, "error writing to file. tried to write %d bytes", bw)
 		}
 
 		log.Printf("bytes written: %d", bw)
 	}
-
 }

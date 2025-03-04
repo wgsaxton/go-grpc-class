@@ -68,11 +68,11 @@ func run(ctx context.Context) error {
 	})
 
 	// Isn't it waiting for both go routines to stop?
-	// I think is the 2nd go routine stops with ctx.Done()
+	// I think the 2nd go routine continues and stops with ctx.Done() called
 	// then grpcServer.GracefulStop() will stop the first go routine
 	// But if grpcServer.Serve(lis) gets an error and stops blocking
 	// how will the 2nd go routine stop?
 	// Because of errgroup.WithContext(ctx), all other go routines
-	// are stopped if 1 g.Go() routine errors out
+	// are stopped if 1 g.Go() routine errors out (not just completes)
 	return g.Wait()
 }

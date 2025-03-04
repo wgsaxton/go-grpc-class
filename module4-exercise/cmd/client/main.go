@@ -18,12 +18,12 @@ import (
 func main() {
 	clientCert, err := tls.LoadX509KeyPair("certs/client.crt", "certs/client.key")
 	if err != nil {
-		log.Fatalf("failed to log client certs: %w", err)
+		log.Fatalf("failed to log client certs: %s", err.Error())
 	}
 
 	caCert, err := os.ReadFile("certs/ca.crt")
 	if err != nil {
-		log.Fatalf("failed to read CA cert: %w", err)
+		log.Fatalf("failed to read CA cert: %s", err.Error())
 	}
 
 	certPool := x509.NewCertPool()

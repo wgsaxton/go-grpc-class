@@ -10,12 +10,21 @@ package config
 //   }`
 
 type Config struct {
-	Method []MethodConfig `json:"methodConfig,omitempty"`
+	MethodConfig []MethodConfig `json:"methodConfig,omitempty"`
 }
 
 type MethodConfig struct {
-	Name    []NameConfig `json:"name,omitempty"`
-	Timeout string       `json:"timeout,omitempty"`
+	Name        []NameConfig `json:"name,omitempty"`
+	RetryPolicy RetryPolicy  `json:"retryPolicy,omitempty"`
+	Timeout     string       `json:"timeout,omitempty"`
+}
+
+type RetryPolicy struct {
+	MaxAttempts          int      `json:"maxAttempts,omitempty"`
+	InitialBackoff       string   `json:"initialBackoff,omitempty"`
+	MaxBackoff           string   `json:"maxBackoff,omitempty"`
+	BackoffMultiplier    int      `json:"backoffMultiplier,omitempty"`
+	RetryableStatusCodes []string `json:"retryableStatusCodes,omitempty"`
 }
 
 type NameConfig struct {

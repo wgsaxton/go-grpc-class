@@ -14,28 +14,24 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// const serviceConfig = `{
-	//   "methodConfig": [
-	//     {
-	//       "name": [{"service": "config.ConfigService", "method": "LongRunning"}],
-	//       "timeout": "1s"
-	//     }
-	//   ]
-	// }`
-
 	cfg := config.Config{
 		MethodConfig: []config.MethodConfig{{
 			Name: []config.NameConfig{{
 				Service: "config.ConfigService",
-				Method:  "LongRunning",
 			}},
-			Timeout: "1s",
+			RetryPolicy: config.RetryPolicy{
+				MaxAttempts:          4,
+				InitialBackoff:       "0.1s",
+				MaxBackoff:           "1s",
+				BackoffMultiplier:    2,
+				RetryableStatusCodes: []string{"INTERNAL", "UNAVAILABLE"},
+			},
 		}},
 	}
 
 	serviceConfig, err := json.Marshal(cfg)
 	if err != nil {
-		log.Fatalf("failed to marshal the config: %v", err)
+		log.Fatalf("failed to marshal config: %v", err)
 	}
 
 	conn, err := grpc.NewClient("localhost:50051",
@@ -43,15 +39,15 @@ func main() {
 		grpc.WithDefaultServiceConfig(string(serviceConfig)),
 	)
 	if err != nil {
-		log.Fatalf("failed to connect: %v", err)
+		log.Fatalf("failed to create the client: %v", err)
 	}
-	defer conn.Close()
 
 	client := proto.NewConfigServiceClient(conn)
 
-	_, err = client.LongRunning(ctx, &proto.LongRunningRequest{})
+	_, err = client.Flaky(ctx, &proto.FlakyRequest{})
 	if err != nil {
 		log.Fatal(err)
 	}
+
 
 }

@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/wgsaxton/go-grpc-class/module6/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type service struct {
@@ -33,4 +36,15 @@ func (s service) LongRunning(ctx context.Context, req *proto.LongRunningRequest)
 	}
 
 	return &proto.LongRunningResponse{}, nil
+}
+
+func (s service) Flaky(ctx context.Context, req *proto.FlakyRequest) (*proto.FlakyResponse, error) {
+	if rand.Intn(3) != 0 {
+		log.Println("error respons returned")
+		return nil, status.Error(codes.Internal, "flaky error occurred")
+	}
+
+	log.Println("successful response occurred")
+
+	return &proto.FlakyResponse{}, nil
 }

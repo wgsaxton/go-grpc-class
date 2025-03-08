@@ -48,3 +48,9 @@ func (s service) Flaky(ctx context.Context, req *proto.FlakyRequest) (*proto.Fla
 
 	return &proto.FlakyResponse{}, nil
 }
+
+func (s service) GetServerAddress(context.Context, *proto.GetServerAddressRequest) (*proto.GetServerAddressResponse, error) {
+	log.Printf("address received: %s", s.name)
+
+	return &proto.GetServerAddressResponse{Address: s.name}, nil
+}
